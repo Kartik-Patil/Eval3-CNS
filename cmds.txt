@@ -5,3 +5,6 @@ $env:SMTP_USER  = "kartikpatilhrg@gmail.com"
 $env:SMTP_PASS  = "qeqnptlghhmbyglk"
 $env:EMAIL_FROM = "Kartik Patil <kartikpatilhrg@gmail.com>"
 $env:SESSION_SECRET = "CNS_Evaluation_3"
+
+
+node server.js
