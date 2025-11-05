@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Demo: Captcha + OTP + SSL</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light dark">
+  <style>
+    /* --- Variables --- */
+    :root{
+      --bg: #f6f8fa;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --accent: linear-gradient(90deg,#6b8cff,#8e6bff);
+      --accent-plain: #6b8cff;
+      --success:#16a34a;
+      --danger:#ef4444;
+      --radius:14px;
+      --shadow: 0 6px 20px rgba(18,25,44,0.06);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    /* --- Page layout --- */
+    html,body{height:100%; margin:0; background:var(--bg); color:#0f172a;}
+    .wrap{
+      min-height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:48px 20px;
+      box-sizing:border-box;
+    }
+
+    /* --- Card --- */
+    .card{
+      width:100%;
+      max-width:920px;
+      background:linear-gradient(180deg,rgba(255,255,255,0.9), rgba(255,255,255,0.95));
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:32px;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:28px;
+      align-items:start;
+      box-sizing:border-box;
+    }
+
+    /* Left column content */
+    .hero {
+      padding-right:8px;
+    }
+    .title{
+      margin:0 0 6px 0;
+      font-size:28px;
+      letter-spacing:-0.2px;
+      font-weight:700;
+      color:#0b1220;
+    }
+    .subtitle{
+      margin:0 0 18px 0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    /* Right column (form) */
+    .panel{
+      background:var(--card);
+      border-radius:12px;
+      padding:18px;
+      box-shadow:0 4px 14px rgba(11,20,34,0.03);
+    }
+
+    .section{
+      margin-bottom:18px;
+    }
+    .label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    /* -------------------------
+       INPUT / CAPTCHA FIXES
+       ------------------------- */
+    input[type="email"],
+    input[type="text"],
+    input[type="number"],
+    #captchaInput {
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid #e6e9ef;
+      background: #fbfdff !important;
+      outline:none;
+      box-sizing:border-box;
+      transition:box-shadow .14s, border-color .14s;
+      color: #0b1220;                  /* ensure visible typed text */
+      -webkit-text-fill-color: #0b1220;/* safari/chrome autofill text color */
+      caret-color: #0b1220;            /* visible caret */
+      font-size:15px;
+    }
+
+    /* Placeholder styling (lighter but visible) */
+    input::placeholder,
+    #captchaInput::placeholder {
+      color: #9aa3b2;
+      opacity: 1;
+    }
+
+    /* Autofill background + text fixes for Chrome */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus {
+      -webkit-text-fill-color: #0b1220 !important;
+      transition: background-color 5000s ease-in-out 0s;
+      background-clip: padding-box;
+    }
+
+    /* Better focus outline */
+    input:focus {
+      border-color:var(--accent-plain);
+      box-shadow:0 6px 18px rgba(107,140,255,0.12);
+      outline: none;
+    }
+
+    /* Make captcha input slightly larger for readability */
+    #captchaInput {
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    /* small tweak for numeric OTP input to avoid default spinner on some browsers */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* -------------------------
+       END INPUT / CAPTCHA FIXES
+       ------------------------- */
+
+    .row { display:flex; gap:12px; align-items:center; }
+    .captcha-img { height:46px; width:140px; object-fit:contain; border-radius:8px; border:1px solid #eee; background:#fff; }
+    .smallbtn { padding:8px 10px; border-radius:8px; background:#fff; border:1px solid #e6e9ef; cursor:pointer; }
+    .btn {
+      display:block;
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:0;
+      cursor:pointer;
+      font-weight:600;
+      color:white;
+      background:var(--accent);
+      background-size:200% 100%;
+      transition:transform .08s ease, filter .12s;
+      box-shadow: 0 6px 18px rgba(107,140,255,0.16);
+    }
+    .btn:active{ transform:translateY(1px) }
+    .btn.secondary{
+      background:transparent;
+      color:#0b1220;
+      border:1px solid #e6e9ef;
+      box-shadow:none;
+    }
+    .muted-box{ font-size:13px; color:var(--muted); padding:10px; border-radius:8px; background:#fbfdff; border:1px solid #f1f4f8; }
+
+    .message{ margin-top:10px; padding:10px; border-radius:8px; font-size:14px; display:none; }
+    .message.info{ background:#f1f6ff; color:#08378a; border:1px solid #e6f0ff; }
+    .message.error{ background:#fff2f2; color:var(--danger); border:1px solid #fee2e2; }
+    .message.success{ background:#f2fff5; color:var(--success); border:1px solid #d9f7e0; }
+
+    /* Protected data area */
+    .profile-box{ padding:12px; border-radius:10px; background:#fbfdff; border:1px solid #eef2f6; font-size:13px; color:#0b1220; min-height:46px; display:flex; align-items:center; justify-content:center; }
+
+    /* Help text */
+    .hint { font-size:12px; color:var(--muted); margin-top:8px; }
+
+    /* Responsive */
+    @media (max-width:900px){
+      .card{ grid-template-columns: 1fr; padding:20px; gap:16px; }
+      .panel{ order:2; }
+    }
+
+    /* subtle hover for captcha */
+    .captcha-wrap{ display:flex; gap:8px; align-items:center; }
+    .refresh { cursor:pointer; color:var(--muted); font-size:13px; border:0; background:transparent; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="main" aria-labelledby="title">
+      <div class="hero" aria-hidden="false">
+        <h1 id="title" class="title">Captcha + OTP + SSL — Demo</h1>
+        <p class="subtitle">A simple demonstration of server-side CAPTCHA validation, email OTP, and local HTTPS. This is a demo — do not use in production as-is.</p>
+
+        <div class="muted-box">
+          <strong>How it works</strong>
+          <p style="margin:6px 0 0 0;">Request an OTP after solving the captcha. The server stores the captcha in your session, and the OTP is emailed to your address.</p>
+        </div>
+      </div>
+
+      <aside class="panel" aria-label="Authentication panel">
+        <div class="section">
+          <label class="label" for="email">Email</label>
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+
+        <div class="section">
+          <label class="label">Captcha</label>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="flex:1">
+              <input id="captchaInput" type="text" placeholder="Type the characters" autocomplete="off" />
+              <div class="hint">Case-insensitive. Click refresh if unreadable.</div>
+            </div>
+
+            <div style="width:160px;display:flex;flex-direction:column;align-items:flex-end;">
+              <img id="captchaImg" class="captcha-img" src="/api/captcha" alt="captcha image" />
+              <button id="refreshCaptcha" class="smallbtn refresh" title="Refresh captcha" style="margin-top:8px">Refresh</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <button id="sendOtp" class="btn" type="button">Send OTP</button>
+          <div id="otpMessage" class="message info" role="status" aria-live="polite" style="display:none;"></div>
+        </div>
+
+        <hr style="border:0;border-top:1px dashed #f1f4f8;margin:14px 0" />
+
+        <div class="section">
+          <label class="label">Enter OTP</label>
+          <input id="otpField" type="number" inputmode="numeric" placeholder="6-digit code" />
+          <div style="margin-top:10px;">
+            <button id="verifyOtpBtn" class="btn secondary" type="button">Verify OTP</button>
+            <div id="verifyMessage" class="message" role="status" aria-live="polite" style="display:none;"></div>
+          </div>
+        </div>
+
+        <div class="section" style="margin-top:6px;">
+          <label class="label">Protected Data</label>
+          <div style="display:flex;gap:8px">
+            <div class="profile-box" id="profile">Not authenticated</div>
+          </div>
+          <div style="margin-top:10px">
+            <button id="getProfile" class="btn secondary">Get profile (protected)</button>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
